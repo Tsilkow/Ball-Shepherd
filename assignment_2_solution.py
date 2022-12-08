@@ -12,22 +12,23 @@ def is_blue(color):
 
 
 def forward_distance(photo):
-    print(photo.shape)
+    focal_length = 211000
+    buffor = 0#100
     best_height = 0
-    for x in range(photo.shape[0]):
-        if not is_blue(photo[x, photo.shape[1]//2]): continue
-        #print(f'There\'s a blue pixel at ({x}, 0)): {photo[x, photo.shape[1]//2]}')
-        #photo[x, photo.shape[1]//2] = np.array([255, 0, 0, 255])
+    for x in range(0, photo.shape[0]):
+        if not is_blue(photo[photo.shape[0]//2, photo.shape[1]//2]): raise ValueError
         bottom = photo.shape[1]//2
         top = photo.shape[1]//2
         while bottom > 0           and is_blue(photo[x, bottom]): bottom -= 1
         while top < photo.shape[1] and is_blue(photo[x, top   ]): top    += 1
-        #photo[x, bottom:top] = np.array([255, 0, 0, 255])
         height = top-bottom+1
-        #print(f'At x={x} heighest centered blue segment with top at {top} and bottom at {bottom} has height= {height}.')
         if height > best_height: best_height = height
-    result = 207500//best_height
-    print(result)
+    result = focal_length//best_height#-buffor
+    print(f'Estimated distance={result} (from height={best_height}) assuming focal length={focal_length} and buffor={buffor}')
+    if height > 100:
+        cv2.imshow('vis', photo)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
     return result
 
 
