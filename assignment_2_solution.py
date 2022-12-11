@@ -11,24 +11,26 @@ def is_blue(color):
     return (tmp[1]+tmp[2] < tmp[0]-0.25)
 
 
+# Distance estimation is achieved by finding a blue ball on the vertical line going through
+# the middle of the photo and then measuring its width at its widest point. Then distance is
+# estimated by a matched parameter encompassing focal_length, step to distance ratio and
+# small effects of the simulation. Buffor is subtracted from final prediciton to better fit
+# the data
 def forward_distance(photo):
-    focal_length = 211000
-    buffor = 0#100
-    best_height = 0
+    focal_length = 230000
+    buffor = 300
+    biggest_width = 0
     for x in range(0, photo.shape[0]):
         if not is_blue(photo[photo.shape[0]//2, photo.shape[1]//2]): raise ValueError
         bottom = photo.shape[1]//2
         top = photo.shape[1]//2
         while bottom > 0           and is_blue(photo[x, bottom]): bottom -= 1
         while top < photo.shape[1] and is_blue(photo[x, top   ]): top    += 1
-        height = top-bottom+1
-        if height > best_height: best_height = height
-    result = focal_length//best_height#-buffor
-    print(f'Estimated distance={result} (from height={best_height}) assuming focal length={focal_length} and buffor={buffor}')
-    if height > 100:
-        cv2.imshow('vis', photo)
-        cv2.waitKey()
-        cv2.destroyAllWindows()
+        width = top-bottom+1
+        if width > biggest_width: biggest_width = width
+    if biggest_width == 0: return 0
+    result = int(round(focal_length/biggest_width))-buffor
+    #print(f'Estimated distance={result} (from width={best_width}) assuming focal length={focal_length} and buffor={buffor}')
     return result
 
 

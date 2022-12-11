@@ -29,7 +29,6 @@ def test_forward_distance():
         ball_move = distance.euclidean(
             ball_start_pos, p.getBasePositionAndOrientation(ball)[0]
         )
-        print(seed, ball_move)
         assert ball_move < 0.1, ball_move
 
 
