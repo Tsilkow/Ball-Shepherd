@@ -11,27 +11,29 @@ def is_blue(color):
     return (tmp[1]+tmp[2] < tmp[0]-0.25)
 
 
-# Distance estimation is achieved by finding a blue ball on the vertical line going through
-# the middle of the photo and then measuring its width at its widest point. Then distance is
-# estimated by a matched parameter encompassing focal_length, step to distance ratio and
-# small effects of the simulation. Buffor is subtracted from final prediciton to better fit
-# the data
 def forward_distance(photo):
     focal_length = 230000
     buffor = 300
-    biggest_width = 0
-    for x in range(0, photo.shape[0]):
-        if not is_blue(photo[photo.shape[0]//2, photo.shape[1]//2]): raise ValueError
-        bottom = photo.shape[1]//2
-        top = photo.shape[1]//2
-        while bottom > 0           and is_blue(photo[x, bottom]): bottom -= 1
-        while top < photo.shape[1] and is_blue(photo[x, top   ]): top    += 1
-        width = top-bottom+1
-        if width > biggest_width: biggest_width = width
-    if biggest_width == 0: return 0
-    result = int(round(focal_length/biggest_width))-buffor
-    #print(f'Estimated distance={result} (from width={best_width}) assuming focal length={focal_length} and buffor={buffor}')
-    return result
+
+    hsv_photo = cv2.cvtColor(photo[:420, :], cv2.COLOR_BGR2HSV)
+    mask_1 = cv2.inRange(hsv_photo, np.array([105, 100,  50]), np.array([135, 255, 255]))
+    # mask_2 = cv2.inRange(hsv_photo, np.array([165, 100,  50]), np.array([179, 255, 255]))
+    mask = mask_1# + mask_2
+    center = (np.argmax(np.sum(mask, axis=0)), np.argmax(np.sum(mask, axis=1)))
+    
+    left  = center[1]
+    right = center[1]
+    while left  > 0              and mask[center[0], left ] > 0:
+        mask[center[0], left] = 0
+        left  -= 1
+    while right < photo.shape[1] and mask[center[0], right] > 0: 
+        mask[center[0], right] = 0
+        right += 1
+    if left == right: return 0
+    width = right-left+1
+    result = int(round(focal_length/width))-buffor
+    #print(f'Estimated distance={result} (from width={width}) assuming focal length={focal_length} and buffor={buffor}')
+    return width#result
 
 
 def find_a_ball(car):
