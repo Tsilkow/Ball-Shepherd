@@ -12,8 +12,8 @@ def is_blue(color):
 
 
 def forward_distance(photo):
-    focal_length = 230000
-    buffor = 300
+    focal_length = 311200
+    buffor = 2000
 
     hsv_photo = cv2.cvtColor(photo[:420, :], cv2.COLOR_BGR2HSV)
     mask_1 = cv2.inRange(hsv_photo, np.array([105, 100,  50]), np.array([135, 255, 255]))
@@ -23,17 +23,13 @@ def forward_distance(photo):
     
     left  = center[1]
     right = center[1]
-    while left  > 0              and mask[center[0], left ] > 0:
-        mask[center[0], left] = 0
-        left  -= 1
-    while right < photo.shape[1] and mask[center[0], right] > 0: 
-        mask[center[0], right] = 0
-        right += 1
+    while left  > 0              and mask[center[0], left ] > 0: left  -= 1
+    while right < photo.shape[1] and mask[center[0], right] > 0: right += 1
     if left == right: return 0
     width = right-left+1
     result = int(round(focal_length/width))-buffor
     #print(f'Estimated distance={result} (from width={width}) assuming focal length={focal_length} and buffor={buffor}')
-    return width#result
+    return result
 
 
 def find_a_ball(car):
