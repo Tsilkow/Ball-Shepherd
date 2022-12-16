@@ -98,28 +98,29 @@ def find_pillars(view, color):
         strip_presence.append(np.sum(strip))
         if divide == None and strip_presence[-1] > 0 : divide = -1
         elif divide == -1 and strip_presence[-1] == 0: divide = x+1
-    print(f'divide={divide} | {strip_presence}')
+    #print(f'divide={divide} | {strip_presence}')
     if divide == -1: return None
     left_field  = np.sum(mask[:, :divide], axis=0)
     right_field = np.sum(mask[:, divide:], axis=0)
     if np.amax(left_field) == 0 or np.amax(right_field) == 0:
-        print(f'left_field={left_field} | right_field={right_field}')
-        show_mask(view)
+        #print(f'left_field={left_field} | right_field={right_field}')
+        #show_mask(view)
         return None
     left_pillar  = array_center(left_field)
     right_pillar = divide + array_center(right_field)
-    print(left_pillar, right_pillar)
+    #print(left_pillar, right_pillar)
     view[:, divide] = [0, 0, 0, 255]
     view[:, left_pillar] = [255, 0, 0, 255]
     view[:, right_pillar] = [0, 255, 0, 255]
     view[:, (left_pillar + right_pillar)//2] = [255, 255, 0, 255]
-    show_mask(view)
-    print(int(round((left_pillar + right_pillar)/2 - view.shape[1]/2)))
+    #show_mask(view)
+    #print(int(round((left_pillar + right_pillar)/2 - view.shape[1]/2)))
     return int(round((left_pillar + right_pillar)/2 - view.shape[1]/2))
 
 
 def move_a_ball(car):
     centerness_threshold = 50
+    forward_every_x_steps = 2
 
     #show(car)
     find_a_ball(car)
@@ -131,19 +132,20 @@ def move_a_ball(car):
         drive(car, True, 1)
         drive(car, True, 0)
 
-    #show(car)
+    # show(car)
+    steps_since_forward = 0
     while True:
         view = take_a_photo(car)
         left_right = find_pillars(view, 'blue')
-        print(f'blue pillars: {left_right}')
+        # print(f'blue pillars: {left_right}')
         if left_right == None:
             left_right = find_pillars(view, 'green')
-            print(f'green pillars: {left_right}')
+            # print(f'green pillars: {left_right}')
         if left_right == None: break
-        if abs(left_right) < centerness_threshold: drive(car, True, 0)
-        else: rotate_car(car, True, (left_right < 0))
-        #show(car)
-    # TODO: you should write this function using
-    # - take_a_photo(car)
-    # - drive(car, forward, direction)
-    pass
+        if abs(left_right) < centerness_threshold or steps_since_forward > forward_every_x_steps:
+            drive(car, True, 0)
+            steps_since_forward = 0
+        else:
+            rotate_car(car, True, (left_right < 0))
+            steps_since_forward += 1
+        # show(car)
