@@ -95,12 +95,6 @@ def find_cylinders(view, color):
     return int(round((left_cylinder + right_cylinder)/2 - view.shape[1]/2))
 
 
-def show(car):
-    photo = take_a_photo(car)
-    cv2.imshow('a', photo)
-    cv2.waitKey()
-
-
 def move_a_ball(car):
     centerness_threshold = 50 # threshold for centerness of car's view on target
     forward_every_x_steps = 2 # how many turns to make before driving forward to keep the ball in car's bumper
