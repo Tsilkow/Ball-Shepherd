@@ -11,7 +11,7 @@ def test_forward_distance():
     for seed in range(NUMBER_OF_TESTS):
         random.seed(seed)
         car = build_world_with_car()
-        pos_1 = [2 * random.random() + 1, 0, 1]
+        pos_1 = [3 * random.random() + 2, 0, 1]
         ball = p.loadURDF("sphere2red.urdf", pos_1, globalScaling=0.3)
         for i in range(200):
             p.stepSimulation()

@@ -1,6 +1,4 @@
 from assignment_2_lib import take_a_photo, drive
-
-# TODO: add imports and functions
 import cv2
 import numpy as np
 
@@ -12,7 +10,7 @@ def visual_center(data):
 
 def forward_distance(photo, return_center=False):
     focal_length = 311200 # parameter for estimating proportionality of pixel size to distance
-    buffor = 2000 # parameter for keeping safe distance to ball when driving right to it
+    buffor = 1500 # parameter for keeping safe distance to ball when driving right to it
 
     # Prepare mask for red color
     hsv_photo = cv2.cvtColor(photo[:420, :], cv2.COLOR_RGB2HSV)
@@ -54,23 +52,18 @@ def find_a_ball(car):
     distance = None
     while True:
         view = take_a_photo(car)
-        #cv2.imshow('a', view)
-        #cv2.waitKey()
         distance, left_right = forward_distance(view, True)
         if distance == None:
-            #print(f'No ball visible', end='\r')
             drive_forward = rotate_car(car, drive_forward)
         elif abs(left_right) > centerness_threshold:
-            #print(f'Estimated distance={distance:5}, left_right={left_right:3}', end='\r')
             drive_forward = rotate_car(car, drive_forward, (left_right < 0))
         elif distance > distance_threshold:
-            #print(f'Estimated distance={distance:5}, left_right={left_right:3}', end='\r')
             drive(car, True, 0)
         else: break
 
 
-# Function that returns center between two pillars of specified colors within view; if it's unable to find two separate pillars, it returns None
-def find_pillars(view, color):
+# Function that returns center between two cylinders of specified colors within view; if it's unable to find two separate cylinders, it returns None
+def find_cylinders(view, color):
     number_strips = 12 # parameter for number of strips to splitting the view for instance separation
     
     hsv_view = cv2.cvtColor(view[:420, :], cv2.COLOR_RGB2HSV)
@@ -80,7 +73,7 @@ def find_pillars(view, color):
         mask = cv2.inRange(hsv_view, np.array([110, 100,  50]), np.array([140, 255, 255]))
     if np.amax(np.sum(mask, axis=1)) == 0: return None
 
-    # divide the view into strips to find two seperated pillars
+    # divide the view into strips to find two seperated cylinders
     strip_presence = []
     strip_width = view.shape[1] // number_strips
     divide = None
@@ -90,16 +83,22 @@ def find_pillars(view, color):
         if divide == None and strip_presence[-1] > 0 : divide = -1
         elif divide == -1 and strip_presence[-1] == 0: divide = x+1
 
-    # if unable to seperate color into two pillars, return None -- as in no valid center
+    # if unable to seperate color into two cylinders, return None -- as in no valid center
     if divide == -1: return None
     left_field  = np.sum(mask[:, :divide], axis=0)
     right_field = np.sum(mask[:, divide:], axis=0)
 
-    # if less than two pillars are visible, return None -- as in no valid center
+    # if less than two cylinders are visible, return None -- as in no valid center
     if np.amax(left_field) == 0 or np.amax(right_field) == 0: return None
-    left_pillar  = visual_center(left_field)
-    right_pillar = divide + visual_center(right_field)
-    return int(round((left_pillar + right_pillar)/2 - view.shape[1]/2))
+    left_cylinder  = visual_center(left_field)
+    right_cylinder = divide + visual_center(right_field)
+    return int(round((left_cylinder + right_cylinder)/2 - view.shape[1]/2))
+
+
+def show(car):
+    photo = take_a_photo(car)
+    cv2.imshow('a', photo)
+    cv2.waitKey()
 
 
 def move_a_ball(car):
@@ -109,23 +108,26 @@ def move_a_ball(car):
     # Find the ball and get very close to it
     find_a_ball(car)
     for _ in range(5): drive(car, True, 0)
-    
-    steps_since_forward = 0
-    # Find the blue pillars, while keeping ball before the car
-    while True:
-        view = take_a_photo(car)
-        if find_pillars(view, 'blue') is not None: break
-        if steps_since_forward > forward_every_x_steps: drive(car, True, 0)
-        else: drive(car, True, 1)
 
     steps_since_forward = 0
-    # Drive towards the middle between blue pillars and then green pillars, while keeping the ball before the car
+    # Find the blue cylinders, while keeping ball before the car
     while True:
         view = take_a_photo(car)
-        left_right = find_pillars(view, 'blue')
-        if left_right == None: left_right = find_pillars(view, 'green')
+        if find_cylinders(view, 'blue') is not None: break
+        if steps_since_forward >= forward_every_x_steps:
+            drive(car, True, 0)
+            steps_since_forward = 0
+        else:
+            drive(car, True, 1)
+            steps_since_forward += 1
+            
+    # Drive towards the middle between blue cylinders and then green cylinders, while keeping the ball before the car
+    while True:
+        view = take_a_photo(car)
+        left_right = find_cylinders(view, 'blue')
+        if left_right == None: left_right = find_cylinders(view, 'green')
         if left_right == None: break
-        if abs(left_right) < centerness_threshold or steps_since_forward > forward_every_x_steps:
+        if abs(left_right) < centerness_threshold or steps_since_forward >= forward_every_x_steps:
             drive(car, True, 0)
             steps_since_forward = 0
         else:
